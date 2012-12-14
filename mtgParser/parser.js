@@ -8,6 +8,7 @@ var parser = sax.parser(true, {trim:true}),data_array=[],XML_string='';JSON_stri
 var isCardOpen = false;
 var bufferTemp = {};
 var actualTag = null;
+var actualSetObj = null;
 
 parser.onerror = function (e) {
                 // an error happened.
@@ -17,7 +18,12 @@ parser.ontext = function (t) {
               //console.log('data_array:' + data_array);
     if(isCardOpen) {
         console.log('texto:' + t);
-        bufferTemp[actualTag] = t;
+        if(actualSetObj) {
+          actualSetObj.text = t;
+        }
+        else {
+          bufferTemp[actualTag] = t;
+        }
     }
 };
 parser.onopentag = function (node) {
@@ -51,9 +57,29 @@ parser.onclosetag = function(name) {
     isCardOpen = false;
     data_array.push(bufferTemp);
   }
+  else if(name === 'set' && isCardOpen) {
+    actualSetObj = null;
+  }
 }
 parser.onattribute = function (attr) {
-    // an attribute.  attr has "name" and "value"
+    if(isCardOpen && attr.name === 'picURL') {
+      actualSetObj = {
+        text: '',
+        picURL: '',
+        picURLHq: '',
+        picURLSt: ''
+      }
+      bufferTemp.set.push(actualSetObj);
+    }
+    if(actualSetObj) {
+      switch(attr.name) {
+        case 'picURL':
+        case 'picURLHq':
+        case 'picURLSt':
+          actualSetObj[attr.name] = attr.value;
+          break;
+      }
+    }
 };
 parser.onend = function () {
               // parser stream is done, and ready to have more stuff written to it.
