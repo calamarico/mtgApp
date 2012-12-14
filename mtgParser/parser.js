@@ -1,14 +1,16 @@
 var fs = require('fs');
 var sax = require('./sax.js');
-var nano = require('nano')('http://localhost:5984');
+//var nano = require('nano')('http://localhost:5984');
+var nano = require('nano')('https://nodejitsudb4673159760.iriscouch.com:6984');
 
 var strict = true;
-var parser = sax.parser(true, {trim:true}),data_array=[],XML_string='';JSON_string='';
+var parser = sax.parser(true, {trim: true}), data_array=[], XML_string='', JSON_string='';
 
 var isCardOpen = false;
 var bufferTemp = {};
 var actualTag = null;
 var actualSetObj = null;
+var count = 0;
 
 parser.onerror = function (e) {
                 // an error happened.
@@ -17,7 +19,6 @@ parser.ontext = function (t) {
               // got some text.  t is the string of text.
               //console.log('data_array:' + data_array);
     if(isCardOpen) {
-        console.log('texto:' + t);
         if(actualSetObj) {
           actualSetObj.text = t;
         }
@@ -29,12 +30,10 @@ parser.ontext = function (t) {
 parser.onopentag = function (node) {
 
   if(isCardOpen && node.name !== 'card') {
-    console.log('abre tag:' + node.name);
     actualTag = node.name;
   }
   if(node.name === 'card') {
     isCardOpen = true;
-    console.log('abre tag:' + node.name);
     bufferTemp = {
       name: "",
       set: [],
@@ -52,7 +51,6 @@ parser.onopentag = function (node) {
 
 };
 parser.onclosetag = function(name) {
-  console.log('cierra tag:' + name);
   if(name === 'card') {
     isCardOpen = false;
     data_array.push(bufferTemp);
@@ -98,8 +96,8 @@ nano.db.destroy('mtgapp', function() {
         //Produce the JSON string
         JSON_string = JSON.stringify(data_array);
         data_array.forEach(function(item) {
-            db.insert(item, null, function(err, body, header) {
-             if(err) {
+            db.insert(item, 'mtgApp: ' + item.name, function(err, body, header) {
+             if (err) {
                console.log('error al insertar:' + err.message);
                return;
              }
